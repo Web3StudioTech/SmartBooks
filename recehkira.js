@@ -1455,3 +1455,838 @@ RENDERERS.dashboard = function(){
   // re-render current view with new dashboard renderer
   if(getActiveView()==='dashboard') RENDERERS.dashboard();
 })();
+
+/* =========================================================
+   SMARTBOOKS v3 — LHDN & Bank-Ready Features
+   1. Annual Income Statement (printable)
+   2. Business Financial Summary (bank loan ready)
+   3. Outstanding AR (Accounts Receivable)
+   4. Recurring transactions
+   5. Multi-year P&L comparison
+   ========================================================= */
+
+/* ---------- extend i18n ---------- */
+const I18N_V3 = {
+  en: {
+    "nav.statements": "Statements",
+    "nav.ar": "Outstanding",
+    "stmt.annualTitle": "Annual Income Statement",
+    "stmt.annualSub": "Printable statement for LHDN & bank submission",
+    "stmt.selectYear": "Select year",
+    "stmt.generate": "Generate Statement",
+    "stmt.bankTitle": "Business Financial Summary",
+    "stmt.bankSub": "One-page summary for bank loan applications",
+    "stmt.generateBank": "Generate Bank Summary",
+    "stmt.revenue": "REVENUE",
+    "stmt.expenses": "EXPENSES",
+    "stmt.grossProfit": "Gross Profit",
+    "stmt.netProfit": "Net Profit / (Loss)",
+    "stmt.preparedBy": "Prepared by",
+    "stmt.period": "Financial Period",
+    "stmt.disclaimer": "This statement is prepared based on records maintained by the business owner. It has not been audited by a certified public accountant.",
+    "stmt.totalRevenue": "Total Revenue",
+    "stmt.totalExpenses": "Total Expenses",
+    "stmt.profitMargin": "Net Profit Margin",
+    "stmt.outstanding": "Outstanding Receivables",
+    "stmt.outstandingNote": "Amounts owed to the business as at",
+    "stmt.monthlyTrend": "Monthly Revenue Trend (12 months)",
+    "stmt.print": "Print / Save as PDF",
+    "stmt.close": "Close",
+    "stmt.noData": "No transactions found for this year. Add transactions first.",
+    "ar.title": "Outstanding Invoices",
+    "ar.sub": "Money owed to your business by customers.",
+    "ar.totalOutstanding": "Total Outstanding",
+    "ar.overdueAmount": "Overdue",
+    "ar.customer": "Customer",
+    "ar.invoiceNo": "Invoice No.",
+    "ar.invoiceDate": "Date",
+    "ar.dueDate": "Due Date",
+    "ar.amount": "Amount",
+    "ar.daysOverdue": "Days Overdue",
+    "ar.noOutstanding": "No outstanding invoices. All payments are up to date.",
+    "ar.sendReminder": "WhatsApp Reminder",
+    "rec.recurring": "Recurring",
+    "rec.setRecurring": "Set as recurring",
+    "rec.frequency": "Frequency",
+    "rec.monthly": "Monthly",
+    "rec.weekly": "Weekly",
+    "rec.due": "recurring entries due",
+    "rec.logNow": "Log Now",
+    "rec.dismiss": "Dismiss",
+    "rep.multiYear": "Multi-Year Comparison",
+    "rep.year1": "Year",
+    "rep.vsLastYear": "vs last year",
+  },
+  ms: {
+    "nav.statements": "Penyata",
+    "nav.ar": "Tertunggak",
+    "stmt.annualTitle": "Penyata Pendapatan Tahunan",
+    "stmt.annualSub": "Penyata boleh cetak untuk LHDN & permohonan bank",
+    "stmt.selectYear": "Pilih tahun",
+    "stmt.generate": "Jana Penyata",
+    "stmt.bankTitle": "Ringkasan Kewangan Perniagaan",
+    "stmt.bankSub": "Ringkasan satu halaman untuk permohonan pinjaman bank",
+    "stmt.generateBank": "Jana Ringkasan Bank",
+    "stmt.revenue": "PENDAPATAN",
+    "stmt.expenses": "PERBELANJAAN",
+    "stmt.grossProfit": "Keuntungan Kasar",
+    "stmt.netProfit": "Keuntungan / (Kerugian) Bersih",
+    "stmt.preparedBy": "Disediakan oleh",
+    "stmt.period": "Tempoh Kewangan",
+    "stmt.disclaimer": "Penyata ini disediakan berdasarkan rekod yang diselenggara oleh pemilik perniagaan. Ia tidak diaudit oleh akauntan awam bertauliah.",
+    "stmt.totalRevenue": "Jumlah Pendapatan",
+    "stmt.totalExpenses": "Jumlah Perbelanjaan",
+    "stmt.profitMargin": "Margin Keuntungan Bersih",
+    "stmt.outstanding": "Akaun Belum Terima",
+    "stmt.outstandingNote": "Amaun yang terhutang kepada perniagaan setakat",
+    "stmt.monthlyTrend": "Trend Pendapatan Bulanan (12 bulan)",
+    "stmt.print": "Cetak / Simpan sebagai PDF",
+    "stmt.close": "Tutup",
+    "stmt.noData": "Tiada transaksi untuk tahun ini. Sila tambah transaksi terlebih dahulu.",
+    "ar.title": "Invois Tertunggak",
+    "ar.sub": "Wang yang terhutang kepada perniagaan anda oleh pelanggan.",
+    "ar.totalOutstanding": "Jumlah Tertunggak",
+    "ar.overdueAmount": "Sudah Lampau",
+    "ar.customer": "Pelanggan",
+    "ar.invoiceNo": "No. Invois",
+    "ar.invoiceDate": "Tarikh",
+    "ar.dueDate": "Tarikh Akhir",
+    "ar.amount": "Jumlah",
+    "ar.daysOverdue": "Hari Lampau",
+    "ar.noOutstanding": "Tiada invois tertunggak. Semua bayaran telah dikemas kini.",
+    "ar.sendReminder": "Peringatan WhatsApp",
+    "rec.recurring": "Berulang",
+    "rec.setRecurring": "Tetapkan sebagai berulang",
+    "rec.frequency": "Kekerapan",
+    "rec.monthly": "Bulanan",
+    "rec.weekly": "Mingguan",
+    "rec.due": "entri berulang perlu direkod",
+    "rec.logNow": "Rekod Sekarang",
+    "rec.dismiss": "Abaikan",
+    "rep.multiYear": "Perbandingan Pelbagai Tahun",
+    "rep.year1": "Tahun",
+    "rep.vsLastYear": "berbanding tahun lepas",
+  },
+  zh: {
+    "nav.statements": "财务报表",
+    "nav.ar": "应收账款",
+    "stmt.annualTitle": "年度收入报表",
+    "stmt.annualSub": "可打印报表，用于税务局申报及银行提交",
+    "stmt.selectYear": "选择年份",
+    "stmt.generate": "生成报表",
+    "stmt.bankTitle": "业务财务摘要",
+    "stmt.bankSub": "银行贷款申请用一页摘要",
+    "stmt.generateBank": "生成银行摘要",
+    "stmt.revenue": "收入",
+    "stmt.expenses": "支出",
+    "stmt.grossProfit": "毛利润",
+    "stmt.netProfit": "净利润 / （亏损）",
+    "stmt.preparedBy": "编制人",
+    "stmt.period": "财务期间",
+    "stmt.disclaimer": "本报表根据业主自行维护的记录编制，未经注册公共会计师审计。",
+    "stmt.totalRevenue": "总收入",
+    "stmt.totalExpenses": "总支出",
+    "stmt.profitMargin": "净利润率",
+    "stmt.outstanding": "应收账款",
+    "stmt.outstandingNote": "截至以下日期业务应收款项",
+    "stmt.monthlyTrend": "月度收入趋势（12个月）",
+    "stmt.print": "打印 / 保存为PDF",
+    "stmt.close": "关闭",
+    "stmt.noData": "本年度无交易记录，请先添加交易。",
+    "ar.title": "未收款发票",
+    "ar.sub": "客户欠您业务的款项。",
+    "ar.totalOutstanding": "未收款总额",
+    "ar.overdueAmount": "已逾期",
+    "ar.customer": "客户",
+    "ar.invoiceNo": "发票编号",
+    "ar.invoiceDate": "日期",
+    "ar.dueDate": "截止日期",
+    "ar.amount": "金额",
+    "ar.daysOverdue": "逾期天数",
+    "ar.noOutstanding": "无未收款发票，所有付款均已到位。",
+    "ar.sendReminder": "WhatsApp提醒",
+    "rec.recurring": "定期",
+    "rec.setRecurring": "设为定期",
+    "rec.frequency": "频率",
+    "rec.monthly": "每月",
+    "rec.weekly": "每周",
+    "rec.due": "定期条目待记录",
+    "rec.logNow": "立即记录",
+    "rec.dismiss": "忽略",
+    "rep.multiYear": "多年对比",
+    "rep.year1": "年份",
+    "rep.vsLastYear": "对比去年",
+  }
+};
+
+// Merge into main I18N
+['en','ms','zh'].forEach(lang => {
+  Object.assign(I18N[lang], I18N_V3[lang] || {});
+});
+
+/* =========================================================
+   FEATURE 1 — STATEMENTS VIEW
+   Annual Income Statement + Bank Financial Summary
+   ========================================================= */
+
+RENDERERS.statements = function(){
+  const root = document.getElementById('view-statements');
+  const years = Array.from(new Set([
+    ...DB.transactions.map(tx => tx.date.slice(0,4)),
+    String(new Date().getFullYear())
+  ])).sort().reverse();
+
+  root.innerHTML = `
+    <div class="row-between">
+      <div>
+        <div class="section-title">${t('stmt.annualTitle')}</div>
+        <div class="section-sub">${t('stmt.annualSub')}</div>
+      </div>
+    </div>
+
+    <!-- Annual Income Statement generator -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title"><div class="dot blue"></div>${t('stmt.annualTitle')}</div>
+      <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;">
+        <div class="field" style="margin-bottom:0;min-width:160px;">
+          <label class="field-label">${t('stmt.selectYear')}</label>
+          <select id="stmtYear">${years.map(y=>`<option value="${y}">${y}</option>`).join('')}</select>
+        </div>
+        <button class="btn primary" id="genAnnualBtn">${t('stmt.generate')}</button>
+      </div>
+    </div>
+
+    <!-- Bank Financial Summary generator -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title"><div class="dot green"></div>${t('stmt.bankTitle')}</div>
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;">${t('stmt.bankSub')}</p>
+      <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;">
+        <div class="field" style="margin-bottom:0;min-width:160px;">
+          <label class="field-label">${t('stmt.selectYear')}</label>
+          <select id="bankYear">${years.map(y=>`<option value="${y}">${y}</option>`).join('')}</select>
+        </div>
+        <button class="btn success" id="genBankBtn">${t('stmt.generateBank')}</button>
+      </div>
+    </div>
+
+    <!-- Statement preview area -->
+    <div id="stmtPreviewArea"></div>
+  `;
+
+  document.getElementById('genAnnualBtn').onclick = () => generateAnnualStatement(document.getElementById('stmtYear').value);
+  document.getElementById('genBankBtn').onclick = () => generateBankSummary(document.getElementById('bankYear').value);
+};
+
+function getYearData(year){
+  const txs = DB.transactions.filter(tx => tx.date.startsWith(year));
+  const incTxs = txs.filter(t=>t.type==='income');
+  const expTxs = txs.filter(t=>t.type==='expense');
+  const totalIncome = incTxs.reduce((s,t)=>s+Number(t.amount),0);
+  const totalExpense = expTxs.reduce((s,t)=>s+Number(t.amount),0);
+
+  // Group by category
+  const incByCat = {}, expByCat = {};
+  incTxs.forEach(tx=>{ incByCat[tx.category]=(incByCat[tx.category]||0)+Number(tx.amount); });
+  expTxs.forEach(tx=>{ expByCat[tx.category]=(expByCat[tx.category]||0)+Number(tx.amount); });
+
+  // Monthly breakdown
+  const monthly = {};
+  for(let m=1;m<=12;m++){
+    const mk = year+'-'+String(m).padStart(2,'0');
+    const mTxs = txs.filter(t=>monthKey(t.date)===mk);
+    monthly[mk]={
+      income: mTxs.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0),
+      expense: mTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0)
+    };
+  }
+  return { txs, incTxs, expTxs, totalIncome, totalExpense, incByCat, expByCat, monthly, net: totalIncome-totalExpense };
+}
+
+function generateAnnualStatement(year){
+  const data = getYearData(year);
+  const p = DB.profile;
+  const area = document.getElementById('stmtPreviewArea');
+
+  if(!data.txs.length){
+    area.innerHTML = `<div class="card"><p style="color:var(--ink-soft);text-align:center;padding:20px;">${t('stmt.noData')}</p></div>`;
+    return;
+  }
+
+  const incRows = Object.entries(data.incByCat).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>
+    `<tr><td style="padding:8px 12px;">${escapeHtml(cat)}</td><td style="padding:8px 12px;text-align:right;font-family:monospace;">${fmtMoney(amt)}</td></tr>`
+  ).join('');
+  const expRows = Object.entries(data.expByCat).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>
+    `<tr><td style="padding:8px 12px;">${escapeHtml(cat)}</td><td style="padding:8px 12px;text-align:right;font-family:monospace;">${fmtMoney(amt)}</td></tr>`
+  ).join('');
+
+  const netColor = data.net >= 0 ? '#16A34A' : '#DC2626';
+  const months = MONTH_NAMES.en;
+
+  const monthRows = Object.entries(data.monthly).map(([mk, d])=>{
+    const mn = months[parseInt(mk.split('-')[1],10)-1];
+    const net = d.income - d.expense;
+    return `<tr>
+      <td style="padding:6px 12px;">${mn}</td>
+      <td style="padding:6px 12px;text-align:right;font-family:monospace;color:#16A34A;">${d.income?fmtMoney(d.income):'—'}</td>
+      <td style="padding:6px 12px;text-align:right;font-family:monospace;color:#DC2626;">${d.expense?fmtMoney(d.expense):'—'}</td>
+      <td style="padding:6px 12px;text-align:right;font-family:monospace;font-weight:${net!==0?'700':'400'};color:${net>=0?'#16A34A':'#DC2626'};">${fmtMoney(net)}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `
+  <div id="annualStmtDoc" style="font-family:-apple-system,Arial,sans-serif;color:#1a1a2e;max-width:720px;margin:0 auto;background:#fff;padding:40px;border:1px solid #e2e8f0;border-radius:10px;">
+
+    <!-- Header -->
+    <div style="border-bottom:3px solid #1A56DB;padding-bottom:20px;margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:22px;font-weight:800;color:#0F172A;">${escapeHtml(p.name||'Business Name')}</div>
+          ${p.regNo?`<div style="font-size:13px;color:#64748B;margin-top:3px;">SSM: ${escapeHtml(p.regNo)}</div>`:''}
+          ${p.tin?`<div style="font-size:13px;color:#64748B;">TIN: ${escapeHtml(p.tin)}</div>`:''}
+          <div style="font-size:13px;color:#64748B;margin-top:3px;">${escapeHtml(p.address||'')}</div>
+          <div style="font-size:13px;color:#64748B;">${escapeHtml(p.phone||'')}${p.email?' · '+escapeHtml(p.email):''}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:13px;font-weight:700;color:#1A56DB;letter-spacing:1px;text-transform:uppercase;">${t('stmt.annualTitle')}</div>
+          <div style="font-size:13px;color:#64748B;margin-top:4px;">${t('stmt.period')}: 1 January ${year} – 31 December ${year}</div>
+          <div style="font-size:12px;color:#94A3B8;margin-top:2px;">${t('stmt.preparedBy')}: ${escapeHtml(p.name||'')}</div>
+          <div style="font-size:12px;color:#94A3B8;">Generated: ${fmtDate(todayStr())}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Revenue section -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#1A56DB;text-transform:uppercase;padding:8px 12px;background:#EBF2FF;border-radius:6px;margin-bottom:8px;">${t('stmt.revenue')}</div>
+      <table style="width:100%;border-collapse:collapse;">
+        ${incRows}
+        <tr style="border-top:2px solid #1A56DB;">
+          <td style="padding:10px 12px;font-weight:700;">${t('stmt.totalRevenue')}</td>
+          <td style="padding:10px 12px;text-align:right;font-weight:800;font-size:15px;font-family:monospace;color:#1A56DB;">${fmtMoney(data.totalIncome)}</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Expenses section -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#DC2626;text-transform:uppercase;padding:8px 12px;background:#FEE2E2;border-radius:6px;margin-bottom:8px;">${t('stmt.expenses')}</div>
+      <table style="width:100%;border-collapse:collapse;">
+        ${expRows}
+        <tr style="border-top:2px solid #DC2626;">
+          <td style="padding:10px 12px;font-weight:700;">${t('stmt.totalExpenses')}</td>
+          <td style="padding:10px 12px;text-align:right;font-weight:800;font-size:15px;font-family:monospace;color:#DC2626;">${fmtMoney(data.totalExpense)}</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Net profit -->
+    <div style="background:${data.net>=0?'#DCFCE7':'#FEE2E2'};border-radius:8px;padding:16px 20px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-weight:700;font-size:16px;color:${netColor};">${t('stmt.netProfit')}</div>
+      <div style="font-weight:800;font-size:22px;font-family:monospace;color:${netColor};">${fmtMoney(data.net)}</div>
+    </div>
+
+    <!-- Monthly breakdown -->
+    <div style="margin-bottom:24px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748B;margin-bottom:10px;">Monthly Breakdown</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="background:#F8FAFC;">
+          <th style="padding:8px 12px;text-align:left;font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;">Month</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;">Revenue</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;">Expenses</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;">Net</th>
+        </tr></thead>
+        <tbody>${monthRows}</tbody>
+      </table>
+    </div>
+
+    <!-- Disclaimer -->
+    <div style="border-top:1px solid #E2E8F0;padding-top:16px;margin-top:8px;">
+      <p style="font-size:11px;color:#94A3B8;line-height:1.6;">${t('stmt.disclaimer')}</p>
+      <div style="margin-top:24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px;">
+        <div>
+          <div style="width:200px;border-top:1px solid #334155;padding-top:6px;margin-top:40px;font-size:12px;color:#64748B;">Authorised Signature & Stamp</div>
+        </div>
+        <div style="text-align:right;font-size:12px;color:#64748B;">
+          <div>SmartBooks</div>
+          <div style="color:#94A3B8;">smartbooks.web3studiotech.com</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  area.innerHTML = `
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+        <div class="card-title" style="margin-bottom:0;"><div class="dot blue"></div>${t('stmt.annualTitle')} ${year}</div>
+        <button class="btn primary" onclick="printStatement('annualStmtDoc')">${t('stmt.print')}</button>
+      </div>
+      ${html}
+    </div>`;
+}
+
+function generateBankSummary(year){
+  const data = getYearData(year);
+  const prevData = getYearData(String(parseInt(year)-1));
+  const p = DB.profile;
+  const area = document.getElementById('stmtPreviewArea');
+
+  const outstandingInvs = DB.invoices.filter(i=>i.status==='unpaid' && i.docType!=='quotation');
+  const totalOutstanding = outstandingInvs.reduce((s,i)=>s+invoiceTotal(i),0);
+  const overdueInvs = outstandingInvs.filter(i=>isOverdue(i));
+  const totalOverdue = overdueInvs.reduce((s,i)=>s+invoiceTotal(i),0);
+
+  const margin = data.totalIncome > 0 ? ((data.net/data.totalIncome)*100).toFixed(1) : '0.0';
+  const prevMargin = prevData.totalIncome > 0 ? ((prevData.net/prevData.totalIncome)*100).toFixed(1) : '0.0';
+  const revenueGrowth = prevData.totalIncome > 0 ? (((data.totalIncome-prevData.totalIncome)/prevData.totalIncome)*100).toFixed(1) : null;
+
+  // Monthly revenue bars (last 12 months)
+  const months = MONTH_NAMES.en;
+  const maxMonthly = Math.max(...Object.values(data.monthly).map(m=>m.income), 1);
+  const monthlyBars = Object.entries(data.monthly).map(([mk, d])=>{
+    const mn = months[parseInt(mk.split('-')[1],10)-1].slice(0,3);
+    const pct = Math.round((d.income/maxMonthly)*100);
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;">
+      <div style="width:100%;background:#F1F5F9;border-radius:4px;height:60px;display:flex;align-items:flex-end;overflow:hidden;">
+        <div style="width:100%;height:${pct}%;background:linear-gradient(180deg,#22C55E,#1A56DB);border-radius:4px 4px 0 0;min-height:${pct>0?2:0}px;"></div>
+      </div>
+      <div style="font-size:9px;color:#94A3B8;margin-top:3px;text-align:center;">${mn}</div>
+    </div>`;
+  }).join('');
+
+  const html = `
+  <div id="bankSummaryDoc" style="font-family:-apple-system,Arial,sans-serif;color:#1a1a2e;max-width:720px;margin:0 auto;background:#fff;padding:40px;border:1px solid #e2e8f0;border-radius:10px;">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #1A56DB;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:22px;font-weight:800;color:#0F172A;">${escapeHtml(p.name||'Business Name')}</div>
+        ${p.regNo?`<div style="font-size:12px;color:#64748B;">SSM Reg No: ${escapeHtml(p.regNo)}</div>`:''}
+        ${p.tin?`<div style="font-size:12px;color:#64748B;">TIN: ${escapeHtml(p.tin)}</div>`:''}
+        <div style="font-size:12px;color:#64748B;">${escapeHtml(p.address||'')} · ${escapeHtml(p.phone||'')}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="background:#1A56DB;color:#fff;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:1px;">BUSINESS FINANCIAL SUMMARY</div>
+        <div style="font-size:12px;color:#64748B;margin-top:6px;">Financial Year: ${year}</div>
+        <div style="font-size:12px;color:#64748B;">As at: ${fmtDate(todayStr())}</div>
+      </div>
+    </div>
+
+    <!-- Key metrics grid -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;">
+      <div style="background:#EBF2FF;border-radius:8px;padding:16px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1A56DB;margin-bottom:6px;">Total Revenue (${year})</div>
+        <div style="font-size:18px;font-weight:800;color:#0F172A;font-family:monospace;">${fmtMoney(data.totalIncome)}</div>
+        ${revenueGrowth!==null?`<div style="font-size:11px;margin-top:4px;color:${parseFloat(revenueGrowth)>=0?'#16A34A':'#DC2626'};">${parseFloat(revenueGrowth)>=0?'▲':'▼'} ${Math.abs(revenueGrowth)}% vs ${parseInt(year)-1}</div>`:''}
+      </div>
+      <div style="background:#DCFCE7;border-radius:8px;padding:16px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#16A34A;margin-bottom:6px;">Net Profit (${year})</div>
+        <div style="font-size:18px;font-weight:800;color:${data.net>=0?'#16A34A':'#DC2626'};font-family:monospace;">${fmtMoney(data.net)}</div>
+        <div style="font-size:11px;margin-top:4px;color:#64748B;">Margin: ${margin}%</div>
+      </div>
+      <div style="background:${totalOutstanding>0?'#FEF3C7':'#F0FDF4'};border-radius:8px;padding:16px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${totalOutstanding>0?'#92400E':'#16A34A'};margin-bottom:6px;">Outstanding Receivables</div>
+        <div style="font-size:18px;font-weight:800;color:${totalOutstanding>0?'#92400E':'#16A34A'};font-family:monospace;">${fmtMoney(totalOutstanding)}</div>
+        <div style="font-size:11px;margin-top:4px;color:#64748B;">${outstandingInvs.length} invoice${outstandingInvs.length!==1?'s':''}</div>
+      </div>
+    </div>
+
+    <!-- Monthly revenue trend -->
+    <div style="margin-bottom:24px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748B;margin-bottom:12px;">${t('stmt.monthlyTrend')}</div>
+      <div style="display:flex;gap:4px;height:80px;align-items:flex-end;">${monthlyBars}</div>
+    </div>
+
+    <!-- P&L comparison table -->
+    <div style="margin-bottom:24px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748B;margin-bottom:10px;">Year-on-Year Comparison</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="background:#F8FAFC;">
+          <th style="padding:8px 12px;text-align:left;font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;">Particulars</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;">${parseInt(year)-1}</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;">${year}</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;">Change</th>
+        </tr></thead>
+        <tbody>
+          ${[
+            ['Total Revenue', prevData.totalIncome, data.totalIncome],
+            ['Total Expenses', prevData.totalExpense, data.totalExpense],
+            ['Net Profit / (Loss)', prevData.net, data.net],
+          ].map(([lbl, prev, curr])=>{
+            const diff = curr - prev;
+            const pct = prev > 0 ? ((diff/prev)*100).toFixed(1) : '—';
+            const isGood = lbl.includes('Expense') ? diff<=0 : diff>=0;
+            return `<tr style="${lbl.includes('Net')?'font-weight:700;border-top:2px solid #E2E8F0;':''}">
+              <td style="padding:9px 12px;">${lbl}</td>
+              <td style="padding:9px 12px;text-align:right;font-family:monospace;color:#64748B;">${fmtMoney(prev)}</td>
+              <td style="padding:9px 12px;text-align:right;font-family:monospace;">${fmtMoney(curr)}</td>
+              <td style="padding:9px 12px;text-align:right;font-size:12px;color:${isGood?'#16A34A':'#DC2626'};">${pct!=='—'?(diff>=0?'▲':'▼')+' '+Math.abs(pct)+'%':'—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Outstanding receivables detail -->
+    ${outstandingInvs.length ? `
+    <div style="margin-bottom:24px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748B;margin-bottom:10px;">Outstanding Receivables Detail</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+        <thead><tr style="background:#FEF3C7;">
+          <th style="padding:7px 10px;text-align:left;font-size:10px;color:#92400E;text-transform:uppercase;">Customer</th>
+          <th style="padding:7px 10px;text-align:left;font-size:10px;color:#92400E;text-transform:uppercase;">Invoice</th>
+          <th style="padding:7px 10px;text-align:right;font-size:10px;color:#92400E;text-transform:uppercase;">Amount</th>
+          <th style="padding:7px 10px;text-align:right;font-size:10px;color:#92400E;text-transform:uppercase;">Due</th>
+        </tr></thead>
+        <tbody>
+          ${outstandingInvs.slice(0,10).map(inv=>`<tr>
+            <td style="padding:7px 10px;">${escapeHtml(inv.client.name||'—')}</td>
+            <td style="padding:7px 10px;color:#64748B;">${escapeHtml(inv.no)}</td>
+            <td style="padding:7px 10px;text-align:right;font-family:monospace;font-weight:700;">${fmtMoney(invoiceTotal(inv))}</td>
+            <td style="padding:7px 10px;text-align:right;font-size:11px;color:${isOverdue(inv)?'#DC2626':'#64748B'};">${inv.dueDate?fmtDate(inv.dueDate):'—'}</td>
+          </tr>`).join('')}
+          <tr style="border-top:2px solid #F59E0B;font-weight:700;">
+            <td style="padding:8px 10px;" colspan="2">Total Outstanding</td>
+            <td style="padding:8px 10px;text-align:right;font-family:monospace;color:#92400E;">${fmtMoney(totalOutstanding)}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>` : ''}
+
+    <!-- Disclaimer & signature -->
+    <div style="border-top:1px solid #E2E8F0;padding-top:16px;">
+      <p style="font-size:11px;color:#94A3B8;line-height:1.6;margin-bottom:20px;">${t('stmt.disclaimer')}</p>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;">
+        <div>
+          <div style="width:200px;border-top:1px solid #334155;padding-top:6px;margin-top:40px;font-size:12px;color:#64748B;">Authorised Signature & Stamp</div>
+          <div style="font-size:11px;color:#94A3B8;margin-top:4px;">${escapeHtml(p.name||'')}</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#94A3B8;">
+          <div>Prepared using SmartBooks</div>
+          <div>smartbooks.web3studiotech.com</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  area.innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+        <div class="card-title" style="margin-bottom:0;"><div class="dot green"></div>${t('stmt.bankTitle')} ${year}</div>
+        <button class="btn primary" onclick="printStatement('bankSummaryDoc')">${t('stmt.print')}</button>
+      </div>
+      ${html}
+    </div>`;
+}
+
+function printStatement(elementId){
+  const el = document.getElementById(elementId);
+  if(!el) return;
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>SmartBooks Statement</title><meta charset="utf-8">
+    <style>body{margin:0;padding:20px;font-family:-apple-system,Arial,sans-serif;}@media print{body{padding:0;}}</style>
+  </head><body>${el.outerHTML}</body></html>`);
+  w.document.close();
+  setTimeout(()=>{w.focus();w.print();},300);
+}
+
+/* =========================================================
+   FEATURE 2 — OUTSTANDING AR VIEW
+   ========================================================= */
+RENDERERS.ar = function(){
+  const root = document.getElementById('view-ar');
+  const outstanding = DB.invoices.filter(i=>i.status==='unpaid' && i.docType!=='quotation');
+  const totalAmt = outstanding.reduce((s,i)=>s+invoiceTotal(i),0);
+  const overdueList = outstanding.filter(i=>isOverdue(i));
+  const overdueAmt = overdueList.reduce((s,i)=>s+invoiceTotal(i),0);
+  const today = new Date(todayStr());
+
+  if(!outstanding.length){
+    root.innerHTML = `
+      <div class="row-between"><div><div class="section-title">${t('ar.title')}</div><div class="section-sub">${t('ar.sub')}</div></div></div>
+      <div class="card"><div class="empty-state">
+        <div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <div style="font-weight:700;margin-bottom:6px;">${t('ar.noOutstanding')}</div>
+      </div></div>`;
+    return;
+  }
+
+  // Group by customer
+  const byCustomer = {};
+  outstanding.forEach(inv=>{
+    const name = inv.client.name || '(No name)';
+    if(!byCustomer[name]) byCustomer[name] = {invs:[], phone: inv.client.phone||''};
+    byCustomer[name].invs.push(inv);
+    if(inv.client.phone) byCustomer[name].phone = inv.client.phone;
+  });
+
+  const customerCards = Object.entries(byCustomer).map(([name, data])=>{
+    const custTotal = data.invs.reduce((s,i)=>s+invoiceTotal(i),0);
+    const rows = data.invs.map(inv=>{
+      const daysOverdue = inv.dueDate ? Math.floor((today - new Date(inv.dueDate))/(1000*60*60*24)) : null;
+      const overdueTag = (daysOverdue!==null && daysOverdue>0)
+        ? `<span style="background:#FEE2E2;color:#DC2626;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:700;">${daysOverdue}d overdue</span>`
+        : (inv.dueDate ? `<span style="background:#DCFCE7;color:#16A34A;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:700;">Due ${fmtDate(inv.dueDate)}</span>` : '');
+      const waLink = data.phone
+        ? `https://wa.me/${data.phone.replace(/\D/g,'')}?text=${encodeURIComponent('Hi '+name+', this is a friendly reminder that invoice '+inv.no+' for '+fmtMoney(invoiceTotal(inv))+' is outstanding. Thank you.')}`
+        : null;
+      return `<tr>
+        <td style="padding:9px 12px;">${escapeHtml(inv.no)}</td>
+        <td style="padding:9px 12px;color:#64748B;font-size:12px;">${fmtDate(inv.date)}</td>
+        <td style="padding:9px 12px;">${overdueTag}</td>
+        <td style="padding:9px 12px;text-align:right;font-family:monospace;font-weight:700;">${fmtMoney(invoiceTotal(inv))}</td>
+        <td style="padding:9px 12px;">
+          ${waLink ? `<a href="${waLink}" target="_blank" class="btn sm" style="background:#25D366;color:#fff;border-color:#25D366;text-decoration:none;font-size:11px;">💬 ${t('ar.sendReminder')}</a>` : ''}
+        </td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="card" style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <div>
+          <div style="font-weight:700;font-size:15px;">${escapeHtml(name)}</div>
+          ${data.phone?`<div style="font-size:12px;color:#64748B;">${escapeHtml(data.phone)}</div>`:''}
+        </div>
+        <div style="font-size:18px;font-weight:800;font-family:monospace;color:#92400E;">${fmtMoney(custTotal)}</div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>${t('ar.invoiceNo')}</th><th>${t('ar.invoiceDate')}</th><th>Status</th>
+            <th class="num">${t('ar.amount')}</th><th></th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+
+  root.innerHTML = `
+    <div class="row-between">
+      <div><div class="section-title">${t('ar.title')}</div><div class="section-sub">${t('ar.sub')}</div></div>
+    </div>
+    <div class="stat-grid" style="margin-bottom:20px;">
+      <div class="stat-card primary">
+        <div class="stat-label">${t('ar.totalOutstanding')}</div>
+        <div class="stat-value">${fmtMoney(totalAmt)}</div>
+        <div class="stat-badge profit">${outstanding.length} invoice${outstanding.length!==1?'s':''}</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid #DC2626;">
+        <div class="stat-label" style="color:#DC2626;">${t('ar.overdueAmount')}</div>
+        <div class="stat-value" style="color:#DC2626;">${fmtMoney(overdueAmt)}</div>
+        <div class="hint">${overdueList.length} overdue invoice${overdueList.length!==1?'s':''}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Customers Owing</div>
+        <div class="stat-value">${Object.keys(byCustomer).length}</div>
+        <div class="hint">unique customers</div>
+      </div>
+    </div>
+    ${customerCards}`;
+};
+
+/* =========================================================
+   FEATURE 3 — RECURRING TRANSACTIONS
+   ========================================================= */
+
+// extend DB defaults
+(function patchDBForRecurring(){
+  if(!DB.recurringTemplates) DB.recurringTemplates = [];
+  saveDB();
+})();
+
+function checkRecurringDue(){
+  if(!DB.recurringTemplates || !DB.recurringTemplates.length) return;
+  const today = todayStr();
+  const due = DB.recurringTemplates.filter(r => r.nextDate <= today && !r.dismissedDate);
+  if(!due.length) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'recurringBanner';
+  banner.style.cssText = 'position:fixed;bottom:70px;right:20px;background:var(--blue);color:#fff;border-radius:10px;padding:14px 18px;box-shadow:0 4px 20px rgba(26,86,219,.3);z-index:150;max-width:320px;font-size:13px;';
+  banner.innerHTML = `<div style="font-weight:700;margin-bottom:8px;">🔄 ${due.length} ${t('rec.due')}</div>
+    ${due.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.2);">
+      <div><div style="font-weight:600;">${escapeHtml(r.description||r.category)}</div><div style="font-size:11px;opacity:.8;">${fmtMoney(r.amount)} · ${r.frequency}</div></div>
+      <button onclick="logRecurring('${r.id}')" class="btn sm" style="background:#fff;color:var(--blue);border:none;flex-shrink:0;">${t('rec.logNow')}</button>
+    </div>`).join('')}
+    <button onclick="dismissRecurring()" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:12px;cursor:pointer;margin-top:4px;">${t('rec.dismiss')}</button>`;
+  document.body.appendChild(banner);
+}
+
+window.logRecurring = function(id){
+  const r = DB.recurringTemplates.find(x=>x.id===id);
+  if(!r) return;
+  DB.transactions.push({
+    id: uid(), type: r.type, date: todayStr(), amount: r.amount,
+    category: r.category, description: r.description + ' (Auto)', method: r.method||'Bank Transfer', photo: null
+  });
+  // Advance nextDate
+  const d = new Date(r.nextDate);
+  if(r.frequency === 'monthly') d.setMonth(d.getMonth()+1);
+  else d.setDate(d.getDate()+7);
+  r.nextDate = d.toISOString().slice(0,10);
+  r.dismissedDate = null;
+  saveDB();
+  showToast(t('tx.saved'));
+  const banner = document.getElementById('recurringBanner');
+  if(banner) banner.remove();
+  checkRecurringDue();
+};
+window.dismissRecurring = function(){
+  const today = todayStr();
+  DB.recurringTemplates.forEach(r=>{ if(r.nextDate <= today) r.dismissedDate = today; });
+  saveDB();
+  const banner = document.getElementById('recurringBanner');
+  if(banner) banner.remove();
+};
+
+// Add recurring UI to tx modal (inject into existing form)
+const _origOpenTxModal = openTxModal;
+window.openTxModal = function(id, presetType){
+  _origOpenTxModal(id, presetType);
+  // Inject recurring toggle after photo field if not exists
+  setTimeout(()=>{
+    if(document.getElementById('recurringWrap')) return;
+    const form = document.getElementById('txForm');
+    const wrap = document.createElement('div');
+    wrap.id = 'recurringWrap';
+    wrap.style.cssText = 'border-top:1px solid var(--border);padding-top:12px;margin-top:4px;';
+
+    const existing = id ? (DB.recurringTemplates||[]).find(r=>r.sourceTxId===id) : null;
+    wrap.innerHTML = `<label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+      <input type="checkbox" id="isRecurring" style="width:16px;height:16px;" ${existing?'checked':''}> ${t('rec.setRecurring')}
+    </label>
+    <div id="recurringOptions" style="display:${existing?'block':'none'};margin-top:10px;">
+      <div class="field">
+        <label class="field-label">${t('rec.frequency')}</label>
+        <select id="recFrequency">
+          <option value="monthly" ${existing&&existing.frequency==='monthly'?'selected':''}>${t('rec.monthly')}</option>
+          <option value="weekly" ${existing&&existing.frequency==='weekly'?'selected':''}>${t('rec.weekly')}</option>
+        </select>
+      </div>
+    </div>`;
+    form.querySelector('.btn-row').before(wrap);
+    document.getElementById('isRecurring').onchange = e=>{
+      document.getElementById('recurringOptions').style.display = e.target.checked?'block':'none';
+    };
+  }, 50);
+};
+
+// Patch tx form submit to handle recurring
+const _origTxFormSubmit = document.getElementById('txForm').onsubmit;
+document.getElementById('txForm').addEventListener('submit', function(e){
+  setTimeout(()=>{
+    // After save, check if recurring was set
+    const isRec = document.getElementById('isRecurring');
+    if(!isRec || !isRec.checked) return;
+    const lastTx = DB.transactions[DB.transactions.length-1];
+    if(!lastTx) return;
+    const freq = document.getElementById('recFrequency').value;
+    const d = new Date(lastTx.date);
+    if(freq==='monthly') d.setMonth(d.getMonth()+1);
+    else d.setDate(d.getDate()+7);
+    // Remove existing template for this if any
+    DB.recurringTemplates = (DB.recurringTemplates||[]).filter(r=>r.sourceTxId!==lastTx.id);
+    DB.recurringTemplates.push({
+      id: uid(), sourceTxId: lastTx.id, type: lastTx.type, amount: lastTx.amount,
+      category: lastTx.category, description: lastTx.description, method: lastTx.method,
+      frequency: freq, nextDate: d.toISOString().slice(0,10), dismissedDate: null
+    });
+    saveDB();
+  }, 200);
+}, true);
+
+/* =========================================================
+   FEATURE 4 — MULTI-YEAR P&L IN REPORTS
+   ========================================================= */
+const _origReportsRenderer = RENDERERS.reports;
+RENDERERS.reports = function(){
+  _origReportsRenderer();
+  // Add multi-year tab after render
+  setTimeout(()=>{
+    const root = document.getElementById('view-reports');
+    const existing = document.getElementById('multiYearSection');
+    if(existing) return;
+
+    const section = document.createElement('div');
+    section.id = 'multiYearSection';
+    section.className = 'card';
+    section.style.marginTop = '20px';
+
+    const allYears = Array.from(new Set(DB.transactions.map(t=>t.date.slice(0,4)))).sort().reverse().slice(0,5);
+    if(allYears.length < 2){ return; } // only show if 2+ years
+
+    const rows = ['totalIncome','totalExpense','net'].map((key,ki)=>{
+      const labels = ['Total Revenue','Total Expenses','Net Profit / (Loss)'];
+      const cols = allYears.map(y=>{
+        const d = getYearData(y);
+        const val = d[key];
+        const color = key==='totalExpense' ? '#DC2626' : (val>=0?'#16A34A':'#DC2626');
+        return `<td style="padding:9px 12px;text-align:right;font-family:monospace;font-weight:${ki===2?'700':'400'};color:${ki===0?'var(--blue)':color};">${fmtMoney(val)}</td>`;
+      }).join('');
+      return `<tr style="${ki===2?'border-top:2px solid var(--border);font-weight:700;':''}"}<td style="padding:9px 12px;">${labels[ki]}</td>${cols}</tr>`;
+    }).join('');
+
+    section.innerHTML = `<div class="card-title"><div class="dot green"></div>${t('rep.multiYear')}</div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr><th>Particulars</th>${allYears.map(y=>`<th class="num">${y}</th>`).join('')}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    root.appendChild(section);
+  }, 100);
+};
+
+/* =========================================================
+   WIRE UP NEW VIEWS + NAV ITEMS
+   ========================================================= */
+(function wireUpNewFeatures(){
+  // Add view sections to DOM
+  const content = document.querySelector('.content');
+  if(!document.getElementById('view-statements')){
+    ['statements','ar'].forEach(id=>{
+      const sec = document.createElement('section');
+      sec.className = 'view';
+      sec.id = 'view-' + id;
+      content.appendChild(sec);
+    });
+  }
+
+  // Add sidebar nav items
+  const sidebarNav = document.querySelector('.sidebar-nav');
+  if(sidebarNav && !document.querySelector('.nav-item[data-view="statements"]')){
+    const mainSection = sidebarNav.querySelector('.nav-section-label');
+    const insertAfterInvoices = document.querySelector('.nav-item[data-view="invoices"]');
+
+    // AR item after invoices
+    const arBtn = document.createElement('button');
+    arBtn.className = 'nav-item';
+    arBtn.dataset.view = 'ar';
+    arBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>${t('nav.ar')}</span>`;
+    insertAfterInvoices.after(arBtn);
+
+    // Statements item before Reports
+    const analyticsLabel = Array.from(sidebarNav.querySelectorAll('.nav-section-label')).find(el=>el.textContent==='Analytics');
+    if(analyticsLabel){
+      const stmtBtn = document.createElement('button');
+      stmtBtn.className = 'nav-item';
+      stmtBtn.dataset.view = 'statements';
+      stmtBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span>${t('nav.statements')}</span>`;
+      analyticsLabel.after(stmtBtn);
+    }
+
+    // Bind all nav items including new ones
+    document.querySelectorAll('.nav-item').forEach(btn=>{
+      btn.onclick = ()=> window.switchView(btn.dataset.view);
+    });
+  }
+
+  // Check recurring on load
+  setTimeout(checkRecurringDue, 1500);
+
+  // Update VIEW_TITLES
+  VIEW_TITLES.statements = { en:'Statements', ms:'Penyata', zh:'财务报表', sub:{en:'LHDN & bank-ready documents',ms:'Dokumen untuk LHDN & bank',zh:'税务局及银行申报文件'} };
+  VIEW_TITLES.ar = { en:'Outstanding Invoices', ms:'Invois Tertunggak', zh:'未收款发票', sub:{en:'Money owed to your business',ms:'Wang yang terhutang kepada perniagaan anda',zh:'客户欠款明细'} };
+})();
+
